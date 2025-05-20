@@ -1,2 +1,9 @@
+spotipy
+requests
+python-dotenv
+pandas
+SQLAlchemy
+psycopg2-binary
+apache-airflow
 fastapi
 uvicorn

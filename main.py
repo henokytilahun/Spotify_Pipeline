@@ -6,7 +6,6 @@ app = FastAPI()
 async def callback(request: Request):
     code = request.query_params.get("code")
     if code:
-        # You can store this securely or send it to your local pipeline
         print(f"Received Spotify auth code: {code}")
         return {"message": "Authorization code received. You can close this window."}
     else:

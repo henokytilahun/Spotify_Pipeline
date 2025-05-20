@@ -1,1 +1,7 @@
 /spotify_pipeline_checklist.txt
+/.env.local
+/.env
+/.env.local.example
+/.env.example
+/.env.local.example
+
