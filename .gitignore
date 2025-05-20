@@ -4,4 +4,5 @@
 /.env.local.example
 /.env.example
 /.env.local.example
-.cache
+/.cache
+/data/spotify_export
