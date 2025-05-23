@@ -16,7 +16,7 @@ def init_db_and_load_historical():
     session = Session()
     Base = declarative_base()
 
-    #Define your table (same as before)
+    #Define table
     class ListeningHistory(Base):
         __tablename__ = "listening_history"
         played_at    = Column(DateTime, primary_key=True)
@@ -30,10 +30,10 @@ def init_db_and_load_historical():
         platform     = Column(Text)
         conn_country = Column(String(5))
 
-    # Create tables if not exist
+    #Create tables if not exist
     Base.metadata.create_all(engine)
 
-    #Load your CSV into a DataFrame
+    #Load CSV into a DataFrame
     df = pd.read_csv("spotify_streaming_history.csv", parse_dates=["played_at","date"])
     records = df.to_dict(orient="records")
 
@@ -49,7 +49,7 @@ def init_db_and_load_historical():
 
     print(f"{len(new_records)} new rows to insert (out of {len(records)})")
 
-    #Bulk-insert only the new rows
+    #Bulk-insert only new rows
     inserted = 0
     for record in new_records:
         stmt = pg_insert(ListeningHistory).values(**record).on_conflict_do_nothing(index_elements=['played_at'])
