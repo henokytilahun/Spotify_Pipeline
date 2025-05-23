@@ -8,7 +8,7 @@ import os
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 def init_db_and_load_historical():
-    # ── 0. Load DB URL & connect ────────────────────────────────────────────────────
+    #Load DB URL & connect
     load_dotenv(dotenv_path=".env.local")
     DATABASE_URL = os.getenv("DATABASE_URL")
     engine = create_engine(DATABASE_URL)
@@ -16,7 +16,7 @@ def init_db_and_load_historical():
     session = Session()
     Base = declarative_base()
 
-    # ── 1. Define your table (same as before) ───────────────────────────────────────
+    #Define your table (same as before)
     class ListeningHistory(Base):
         __tablename__ = "listening_history"
         played_at    = Column(DateTime, primary_key=True)
@@ -33,23 +33,23 @@ def init_db_and_load_historical():
     # Create tables if not exist
     Base.metadata.create_all(engine)
 
-    # ── 2. Load your CSV into a DataFrame ───────────────────────────────────────────
+    #Load your CSV into a DataFrame
     df = pd.read_csv("spotify_streaming_history.csv", parse_dates=["played_at","date"])
     records = df.to_dict(orient="records")
 
-    # ── 3. Fetch existing played_at keys ────────────────────────────────────────────
+    #Fetch existing played_at keys
     existing = set(
         r[0] for r in session.execute(
             select(ListeningHistory.played_at)
         ).all()
     )
 
-    # ── 4. Filter out duplicates ────────────────────────────────────────────────────
+    #Filter out duplicates
     new_records = [r for r in records if r["played_at"].to_pydatetime() not in existing]
 
     print(f"{len(new_records)} new rows to insert (out of {len(records)})")
 
-    # ── 5. Bulk-insert only the new rows ────────────────────────────────────────────
+    #Bulk-insert only the new rows
     inserted = 0
     for record in new_records:
         stmt = pg_insert(ListeningHistory).values(**record).on_conflict_do_nothing(index_elements=['played_at'])

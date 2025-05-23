@@ -24,13 +24,13 @@ with DAG(
     catchup=False,
 ) as dag:
 
-    # 1) Initialize DB & load full history
+    #Initialize DB & load full history
     t_init_db = PythonOperator(
         task_id="init_db_and_load_historical",
         python_callable=init_db_and_load_historical,
     )
 
-    # 2) Init Spotify client
+    #Init Spotify client
     def init_spotify_client():
         import spotipy
         from spotipy.oauth2 import SpotifyOAuth
@@ -47,7 +47,7 @@ with DAG(
         python_callable=init_spotify_client,
     )
 
-    # 3) Fetch recently played
+    #Fetch recently played
     def fetch_recently_played(**context):
         sp = context['ti'].xcom_pull(task_ids='init_spotify_client')
         results = sp.current_user_recently_played(limit=50)
@@ -60,7 +60,7 @@ with DAG(
         python_callable=fetch_recently_played,
     )
 
-    # 4) Fetch top tracks
+    #Fetch top tracks
     def fetch_top_tracks(**context):
         sp = context['ti'].xcom_pull(task_ids='init_spotify_client')
         results = sp.current_user_top_tracks(limit=50, time_range='long_term')
@@ -73,7 +73,7 @@ with DAG(
         python_callable=fetch_top_tracks,
     )
 
-    # 5) Fetch top artists
+    #Fetch top artists
     def fetch_top_artists(**context):
         sp = context['ti'].xcom_pull(task_ids='init_spotify_client')
         results = sp.current_user_top_artists(limit=20, time_range='long_term')
@@ -86,7 +86,7 @@ with DAG(
         python_callable=fetch_top_artists,
     )
 
-    # 6) Load GDPR export
+    #Load GDPR export
     def load_streaming_export():
         files = glob.glob('/opt/airflow/data/spotify_export/StreamingHistory*.json')
         df = pd.concat((pd.read_json(f) for f in files), ignore_index=True)
@@ -104,7 +104,7 @@ with DAG(
         python_callable=load_streaming_export,
     )
 
-    # 7) Compute daily metrics
+    #Compute daily metrics
     def compute_daily_metrics():
         engine = PostgresHook(postgres_conn_id='spotify_db').get_sqlalchemy_engine()
         df = pd.read_sql(
@@ -119,7 +119,7 @@ with DAG(
         python_callable=compute_daily_metrics,
     )
 
-    # 8) Cleanup old data
+    #Cleanup old data
     def cleanup_old_data():
         engine = PostgresHook(postgres_conn_id='spotify_db').get_sqlalchemy_engine()
         engine.execute(
@@ -132,7 +132,7 @@ with DAG(
         python_callable=cleanup_old_data,
     )
 
-    # ——— DAG wiring ———
+    #DAG wiring
     t_init_db >> t_init_sp
     t_init_sp >> [t_fetch_recent, t_fetch_top_tracks, t_fetch_top_artists]
     t_fetch_recent >> t_load_export >> t_daily_metrics >> t_cleanup

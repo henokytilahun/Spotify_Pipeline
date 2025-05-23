@@ -1,20 +1,20 @@
 import glob
 import pandas as pd
 
-# 1. Load & concatenate all your exports
+#Load & concatenate all your exports
 files = glob.glob("data/spotify_export/Streaming_History_Audio_*.json")
 dfs = [pd.read_json(f) for f in files]
 history = pd.concat(dfs, ignore_index=True)
 
-# 2. Parse and normalize timestamps
-#    – Ensure we’re in UTC, then drop tzinfo so all datetimes are naïve
+#Parse and normalize timestamps
+#Ensure we’re in UTC, then drop tzinfo so all datetimes are naïve
 history["played_at"] = (
     pd.to_datetime(history["ts"])
       .dt.tz_convert("UTC")
       .dt.tz_localize(None)
 )
 
-# 3. Rename the columns you care about
+#Rename the columns you care about
 history = history.rename(columns={
     "master_metadata_track_name":         "track_name",
     "master_metadata_album_artist_name":  "artist_name",
@@ -22,18 +22,18 @@ history = history.rename(columns={
     "ms_played":                          "ms_played"
 })
 
-# 4. Extract date parts if desired
+#Extract date parts if desired
 history["date"]    = history["played_at"].dt.date
 history["hour"]    = history["played_at"].dt.hour
 history["weekday"] = history["played_at"].dt.day_name()
 
-# 5. Select & reorder only the columns you need
+#Select & reorder only the columns you need
 output = history[[
     "played_at", "date", "hour", "weekday",
     "track_name", "artist_name", "album_name",
     "ms_played", "platform", "conn_country"
 ]]
 
-# 6. Save to CSV
+#Save to CSV
 output.to_csv("spotify_streaming_history.csv", index=False)
 print(f"Saved {len(output)} rows to spotify_streaming_history.csv")

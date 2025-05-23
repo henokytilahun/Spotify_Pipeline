@@ -7,7 +7,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 
-# ── 1. Load & validate creds ────────────────────────────────────────────────────
+#Load & validate creds
 load_dotenv(dotenv_path=".env.local")
 CLIENT_ID     = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
@@ -16,7 +16,7 @@ REDIRECT_URI  = os.getenv("SPOTIFY_REDIRECT_URI")
 if not all([CLIENT_ID, CLIENT_SECRET, REDIRECT_URI]):
     raise RuntimeError("Missing Spotify creds in .env.local")
 
-# ── 2. Auth & token retrieval ──────────────────────────────────────────────────
+#Auth & token retrieval
 auth_manager = SpotifyOAuth(
     client_id=CLIENT_ID,
     client_secret=CLIENT_SECRET,
@@ -31,7 +31,7 @@ if token_info:
     print("Access Token Expires At:",
           time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(token_info["expires_at"])))
 
-# ── 3. Fetch Top Tracks & Top Artists ────────────────────────────────────────────
+#Fetch Top Tracks & Top Artists
 top_tracks   = sp.current_user_top_tracks(limit=50)
 track_items  = top_tracks["items"]
 track_ids    = [t["id"] for t in track_items if t.get("id")]
@@ -42,15 +42,15 @@ artist_ids   = [a["id"] for a in artist_items]
 
 print(f"\nFetched {len(track_ids)} top tracks and {len(artist_ids)} top artists.")
 
-# ── 4. Extract Artist Genres ─────────────────────────────────────────────────────
+#Extract Artist Genres
 artist_info   = sp.artists(artist_ids)["artists"]
 artist_genres = [g for artist in artist_info for g in artist.get("genres", [])]
 genres_df     = pd.DataFrame({"genre": artist_genres})
 
-# ── 5. Track Popularity ───────────────────────────────────────────────────────────
+#Track Popularity
 pop_df = pd.DataFrame({"popularity": [t["popularity"] for t in track_items]})
 
-# ── 6. Album Release Years ───────────────────────────────────────────────────────
+#Album Release Years
 release_years = []
 seen_albums   = {}
 for t in track_items:
@@ -60,8 +60,7 @@ for t in track_items:
     release_years.append(int(seen_albums[aid]))
 year_df = pd.DataFrame({"release_year": release_years})
 
-# ── 7. Listening Time Trends ─────────────────────────────────────────────────────
-# ── 7. Listening Time Trends ────────────────────────────────────────────────────
+#Listening Time Trends
 recent = sp.current_user_recently_played(limit=50)["items"]
 # times is a DatetimeIndex, so use .hour and .day_name() directly
 times = pd.to_datetime([item["played_at"] for item in recent])
@@ -71,7 +70,7 @@ time_df = pd.DataFrame({
 })
 
 
-# ── 8. Diversity & Collab Network ────────────────────────────────────────────────
+#Diversity & Collab Network
 diversity_score = len({t["artists"][0]["id"] for t in track_items}) / len(track_items)
 
 G = nx.Graph()
@@ -84,7 +83,7 @@ for t in track_items:
 print(f"\nArtist Diversity Score: {diversity_score:.2f}")
 print(f"Collaboration network: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
 
-# ── 9. Build summary tables ──────────────────────────────────────────────────────
+#Build summary tables
 summary = {
     "genre_counts": genres_df["genre"]
                         .value_counts()
@@ -98,9 +97,9 @@ summary = {
     ).fillna(0)
 }
 
-# ── 10. Plotting ─────────────────────────────────────────────────────────────────
+#Plotting
 
-# 10.1 Top Genres
+#Top Genres
 if not summary["genre_counts"].empty and "genre" in summary["genre_counts"].columns and "count" in summary["genre_counts"].columns:
     plt.figure()
     summary["genre_counts"].set_index("genre")["count"].plot.bar()
@@ -111,28 +110,28 @@ if not summary["genre_counts"].empty and "genre" in summary["genre_counts"].colu
 else:
     print("[WARN] No genre data to plot. Columns:", summary["genre_counts"].columns.tolist())
 
-# 10.2 Popularity Histogram
+#Popularity Histogram
 plt.figure()
 plt.hist(summary["popularity"], bins=10)
 plt.title("Track Popularity Distribution")
 plt.xlabel("Popularity"); plt.ylabel("Track Count"); plt.tight_layout()
 plt.show()
 
-# 10.3 Album Release Years
+#Album Release Years
 plt.figure()
 summary["release_year"].plot.bar()
 plt.title("Album Release Years")
 plt.xlabel("Year"); plt.ylabel("Count"); plt.tight_layout()
 plt.show()
 
-# 10.4 Listening Hour Distribution
+#Listening Hour Distribution
 plt.figure()
 summary["hours"].plot.bar()
 plt.title("Listening by Hour of Day")
 plt.xlabel("Hour"); plt.ylabel("Count"); plt.tight_layout()
 plt.show()
 
-# 10.5 Day-of-Week Listening
+#Day-of-Week Listening
 plt.figure()
 summary["weekdays"].plot.bar()
 plt.title("Listening by Day of Week")
